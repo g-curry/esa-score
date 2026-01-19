@@ -3,68 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESA 前端性能跑分工具</title>
-    <!-- 引入ECharts、jsPDF、html2canvas依赖 -->
+    <title>前端性能跑分工具（纯前端稳定版）</title>
+    <!-- 引入依赖 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <!-- 页面样式 -->
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
-        .input-area { margin-bottom: 30px; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
-        .input-item { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; }
-        input, select, button { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-        button { background: #0088ff; color: white; border: none; cursor: pointer; margin-top: 10px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft Yahei", Arial, sans-serif; }
+        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
+        h1 { color: #333; margin-bottom: 20px; text-align: center; }
+        .input-area { margin-bottom: 30px; padding: 25px; border: 1px solid #eee; border-radius: 12px; background: #f9f9f9; }
+        .input-item { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 15px; }
+        input, select, button { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        input:focus, select:focus { outline: none; border-color: #0088ff; box-shadow: 0 0 0 2px rgba(0,136,255,0.1); }
+        button { 
+            background: #0088ff; color: white; border: none; cursor: pointer; 
+            font-weight: 600; transition: background 0.3s;
+        }
+        button:hover { background: #0077ee; }
         button:disabled { background: #ccc; cursor: not-allowed; }
+        .tips { font-size: 12px; color: #666; margin-top: 5px; line-height: 1.5; }
+        .tips.warning { color: #ff6600; background: #fff8f0; padding: 8px; border-radius: 4px; margin-top: 8px; }
         .result-area { display: none; margin-top: 30px; }
-        .metrics { margin-bottom: 20px; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
-        .metric-item { margin-bottom: 10px; font-size: 14px; }
-        .chart { width: 100%; height: 400px; margin: 20px 0; }
-        .suggestions { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px; }
-        .suggestion-item { margin-bottom: 8px; font-size: 14px; color: #333; }
-        .download-btn { background: #00cc66; margin-top: 20px; }
-        .tips { font-size: 12px; color: #999; margin-top: 5px; }
+        .metrics { margin-bottom: 25px; padding: 20px; border: 1px solid #eee; border-radius: 10px; }
+        .metric-item { margin-bottom: 12px; font-size: 14px; color: #333; }
+        .metric-item strong { color: #0088ff; }
+        .metric-item .limited { color: #ff6600; font-size: 12px; margin-left: 8px; }
+        .score-box { display: inline-block; padding: 8px 15px; border-radius: 6px; color: white; font-weight: 600; margin-bottom: 15px; }
+        .score-A { background: #00cc66; }
+        .score-B { background: #ff9900; }
+        .score-C { background: #ff6600; }
+        .score-D { background: #ff3300; }
+        .chart { width: 100%; height: 450px; margin: 25px 0; }
+        .resources-detail { margin: 20px 0; padding: 15px; border: 1px solid #eee; border-radius: 8px; }
+        .resources-detail h3 { margin-bottom: 10px; font-size: 16px; color: #333; }
+        .resource-item { padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 13px; }
+        .resource-item:last-child { border-bottom: none; }
+        .suggestions { margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 10px; }
+        .suggestion-item { margin-bottom: 10px; font-size: 14px; color: #333; line-height: 1.6; }
+        .download-area { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .download-btn { flex: 1; min-width: 120px; background: #00cc66; }
+        .download-btn-json { background: #666; }
+        .progress-bar { height: 6px; background: #eee; border-radius: 3px; margin-top: 10px; overflow: hidden; display: none; }
+        .progress-fill { height: 100%; background: #0088ff; width: 0; transition: width 0.3s; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>ESA 前端性能跑分工具</h1>
+        <h1>前端性能跑分工具（纯前端稳定版）</h1>
+        
         <!-- 输入区域 -->
         <div class="input-area">
             <div class="input-item">
-                <label for="url">测试URL（如https://xxx.er.aliyun-esa.net）</label>
-                <input type="url" id="url" placeholder="请输入需测试的前端项目URL（必须为HTTPS协议）" required>
-                <div class="tips">提示：仅支持HTTPS协议的URL，避免浏览器拦截混合内容请求</div>
-            </div>
-            <div class="input-item">
-                <label for="region">测试地区（ESA边缘节点）</label>
-                <select id="region">
-                    <option value="beijing">北京</option>
-                    <option value="shanghai">上海</option>
-                    <option value="guangzhou">广州</option>
-                    <option value="shenzhen">深圳</option>
-                    <option value="hangzhou">杭州</option>
+                <label for="test-type">测试类型</label>
+                <select id="test-type">
+                    <option value="current-page">采集当前页面性能（推荐，无任何限制）</option>
+                    <option value="custom-url">采集自定义HTTPS URL基础信息（仅能获取响应时间/状态码）</option>
                 </select>
+                <div class="tips">提示：选择对应测试类型，当前页面测试可获取完整性能数据</div>
+            </div>
+            <div class="input-item" id="url-container" style="display: none;">
+                <label for="url">测试URL（必须为HTTPS）</label>
+                <input type="url" id="url" placeholder="如https://www.aliyun.com" required>
+                <div class="tips warning">⚠️ 跨域限制提示：自定义URL仅能获取“响应时间、状态码、内容大小”，无法获取DNS/TCP/首屏加载等详细性能数据（浏览器安全限制），建议优先测试当前页面</div>
             </div>
             <button id="testBtn">开始跑分测试</button>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
         </div>
 
         <!-- 结果区域 -->
         <div class="result-area" id="resultArea">
-            <h2>测试报告</h2>
+            <!-- 性能评分 -->
+            <div id="scoreDisplay"></div>
+            <!-- 核心性能指标 -->
             <div class="metrics" id="metrics">
-                <!-- 性能指标会动态插入 -->
+                <!-- 动态插入指标 -->
+            </div>
+            <!-- 资源加载明细（仅当前页面有） -->
+            <div class="resources-detail" id="resourcesDetail" style="display: none;">
+                <h3>资源加载明细</h3>
+                <div id="resourcesList"></div>
             </div>
             <!-- 可视化图表 -->
             <div class="chart" id="chart"></div>
             <!-- 优化建议 -->
             <div class="suggestions" id="suggestions">
-                <!-- 优化建议会动态插入 -->
+                <!-- 动态插入建议 -->
             </div>
-            <!-- PDF下载按钮 -->
-            <button class="download-btn" id="downloadBtn">下载报告为PDF</button>
+            <!-- 下载按钮 -->
+            <div class="download-area">
+                <button class="download-btn" id="downloadPdfBtn">下载PDF报告</button>
+                <button class="download-btn download-btn-json" id="downloadJsonBtn">下载JSON原始数据</button>
+            </div>
         </div>
     </div>
 
@@ -72,233 +105,427 @@
         // 核心DOM元素
         const testBtn = document.getElementById('testBtn');
         const resultArea = document.getElementById('resultArea');
-        const metricsEl = document.getElementById('metrics');
-        const suggestionsEl = document.getElementById('suggestions');
-        const downloadBtn = document.getElementById('downloadBtn');
-        let testResult = null; // 存储测试结果
+        const testTypeSelect = document.getElementById('test-type');
+        const urlContainer = document.getElementById('url-container');
+        const urlInput = document.getElementById('url');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const resourcesDetail = document.getElementById('resourcesDetail');
+        let performanceData = null; // 存储性能数据
 
-        // 点击测试按钮触发逻辑
-        testBtn.addEventListener('click', async () => {
-            const url = document.getElementById('url').value.trim();
-            const region = document.getElementById('region').value;
-            
-            // 基础校验
-            if (!url) {
-                alert('请输入有效的测试URL');
-                return;
-            }
-            if (!url.startsWith('https://')) {
-                alert('测试URL必须为HTTPS协议，请修改后重试');
-                return;
-            }
-
-            // 禁用按钮，显示加载状态
-            testBtn.disabled = true;
-            testBtn.innerText = '测试中...';
-            resultArea.style.display = 'none'; // 隐藏旧结果
-
-            try {
-                // 拼接绝对API地址（避免相对路径解析错误）
-                const apiUrl = `${window.location.origin}/performance-test`;
-                // 配置15秒超时控制器
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                // 发起POST请求到ESA边缘函数
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url, region }),
-                    signal: controller.signal, // 绑定超时信号
-                    credentials: 'include' // 允许携带凭证，适配跨域配置
-                });
-
-                // 清除超时定时器
-                clearTimeout(timeoutId);
-
-                // 检查HTTP响应状态
-                if (!response.ok) {
-                    throw new Error(`请求失败：HTTP ${response.status} ${response.statusText}`);
-                }
-
-                // 解析响应数据
-                testResult = await response.json();
-                
-                // 业务逻辑错误处理
-                if (testResult.code !== 200) {
-                    throw new Error(testResult.msg || '测试失败：未返回有效结果');
-                }
-
-                // 渲染测试结果
-                renderResult(testResult.data);
-                resultArea.style.display = 'block';
-
-            } catch (error) {
-                // 细分错误类型，精准提示
-                if (error.name === 'AbortError') {
-                    alert('测试请求超时（15秒），请检查：1. ESA函数是否部署成功 2. 测试URL是否可正常访问');
-                } else if (error.message.includes('mixed content')) {
-                    alert('测试URL不能为HTTP协议，ESA页面为HTTPS，浏览器拦截混合内容请求');
-                } else if (error.message.includes('Failed to fetch')) {
-                    alert('请求失败：请检查1. ESA边缘函数是否部署成功 2. 跨域配置是否生效 3. 网络是否正常');
-                } else {
-                    alert(`测试失败：${error.message}`);
-                }
-            } finally {
-                // 恢复按钮状态
-                testBtn.disabled = false;
-                testBtn.innerText = '开始跑分测试';
+        // 测试类型切换显示
+        testTypeSelect.addEventListener('change', () => {
+            if (testTypeSelect.value === 'custom-url') {
+                urlContainer.style.display = 'block';
+                resourcesDetail.style.display = 'none'; // 跨域不显示资源明细
+            } else {
+                urlContainer.style.display = 'none';
+                resourcesDetail.style.display = 'block'; // 当前页面显示资源明细
             }
         });
 
-        // 渲染性能指标和图表
-        function renderResult(data) {
-            // 渲染核心性能指标
-            metricsEl.innerHTML = `
-                <div class="metric-item"><strong>测试地区：</strong>${getRegionName(data.region)}</div>
-                <div class="metric-item"><strong>首屏加载时间：</strong>${(data.firstContentfulPaint / 1000).toFixed(2)} 秒</div>
-                <div class="metric-item"><strong>资源总大小：</strong>${(data.resourceSize / 1024).toFixed(2)} KB</div>
-                <div class="metric-item"><strong>交互时间（TTI）：</strong>${(data.tti / 1000).toFixed(2)} 秒</div>
-                <div class="metric-item"><strong>DNS解析时间：</strong>${(data.dnsTime / 1000).toFixed(2)} 秒</div>
-                <div class="metric-item"><strong>TCP连接时间：</strong>${(data.tcpTime / 1000).toFixed(2)} 秒</div>
-                <div class="metric-item"><strong>测试时间：</strong>${data.testTime}</div>
+        // 点击测试按钮
+        testBtn.addEventListener('click', async () => {
+            const testType = testTypeSelect.value;
+            let targetUrl = '';
+            
+            // 基础校验
+            if (testType === 'custom-url') {
+                targetUrl = urlInput.value.trim();
+                if (!targetUrl) {
+                    alert('请输入有效的测试URL');
+                    return;
+                }
+                if (!targetUrl.startsWith('https://')) {
+                    alert('测试URL必须为HTTPS协议');
+                    return;
+                }
+            }
+
+            // 初始化状态
+            testBtn.disabled = true;
+            testBtn.innerText = '测试中...';
+            progressBar.style.display = 'block';
+            resultArea.style.display = 'none';
+            updateProgress(0);
+
+            try {
+                // 分步采集性能数据
+                updateProgress(20);
+                if (testType === 'current-page') {
+                    // 采集当前页面完整性能数据
+                    performanceData = await collectCurrentPagePerformance();
+                } else {
+                    // 采集自定义URL基础数据（避免跨域报错）
+                    performanceData = await collectCustomUrlBasicData(targetUrl);
+                }
+
+                updateProgress(80);
+                // 渲染所有结果
+                renderAllResults(performanceData, testType);
+                updateProgress(100);
+                resultArea.style.display = 'block';
+
+            } catch (error) {
+                alert(`测试失败：${error.message}`);
+            } finally {
+                // 恢复状态
+                testBtn.disabled = false;
+                testBtn.innerText = '开始跑分测试';
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    updateProgress(0);
+                }, 500);
+            }
+        });
+
+        // 采集当前页面的完整性能数据（无跨域限制）
+        async function collectCurrentPagePerformance() {
+            // 等待页面完全加载
+            if (document.readyState !== 'complete') {
+                await new Promise(resolve => window.addEventListener('load', resolve));
+            }
+
+            // 等待Performance API数据完整
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const perf = window.performance;
+            const navigation = perf.getEntriesByType('navigation')[0] || {};
+            const resources = perf.getEntriesByType('resource') || [];
+
+            // 核心性能指标（真实完整数据）
+            const data = {
+                // 导航相关指标
+                firstContentfulPaint: getFirstContentfulPaint(), // 首屏加载时间
+                tti: getTTI(), // 交互时间
+                dnsTime: (navigation.domainLookupEnd || 0) - (navigation.domainLookupStart || 0), // DNS解析时间
+                tcpTime: (navigation.connectEnd || 0) - (navigation.connectStart || 0), // TCP连接时间
+                requestTime: (navigation.responseStart || 0) - (navigation.requestStart || 0), // 请求响应时间
+                loadTime: (navigation.loadEventEnd || 0) - (navigation.loadEventStart || 0), // 页面加载时间
+                // 资源相关指标
+                totalResourceSize: resources.reduce((sum, item) => sum + (item.transferSize || 0), 0), // 总资源大小
+                resourceCount: resources.length, // 资源总数
+                // 资源明细
+                resources: resources.map(item => ({
+                    name: item.name,
+                    type: item.initiatorType,
+                    size: item.transferSize || 0,
+                    loadTime: item.duration,
+                    startTime: item.startTime
+                })),
+                // 基础信息
+                statusCode: 200,
+                responseTime: (navigation.loadEventEnd || 0) - (navigation.fetchStart || 0),
+                testTime: new Date().toLocaleString(),
+                testUrl: window.location.href,
+                isCrossDomain: false
+            };
+
+            return data;
+        }
+
+        // 采集自定义URL的基础数据（避免跨域报错，仅获取前端可访问的信息）
+        async function collectCustomUrlBasicData(url) {
+            try {
+                const startTime = Date.now();
+                // 发起简单GET请求，仅获取基础响应信息
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors', // 明确使用CORS模式
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                    },
+                    signal: AbortSignal.timeout(10000) // 10秒超时
+                });
+
+                // 计算基础响应时间
+                const responseTime = Date.now() - startTime;
+                // 获取内容大小（仅能获取响应头的content-length）
+                const contentLength = response.headers.get('content-length');
+                const totalResourceSize = contentLength ? parseInt(contentLength, 10) : 0;
+
+                // 构造基础数据（跨域仅能获取这些，其他标注为受限）
+                return {
+                    // 跨域受限的指标标注为0，并说明
+                    firstContentfulPaint: 0,
+                    tti: 0,
+                    dnsTime: 0,
+                    tcpTime: 0,
+                    requestTime: responseTime,
+                    loadTime: 0,
+                    // 基础可获取的指标
+                    totalResourceSize: totalResourceSize,
+                    resourceCount: 0,
+                    resources: [],
+                    statusCode: response.status,
+                    responseTime: responseTime,
+                    testTime: new Date().toLocaleString(),
+                    testUrl: url,
+                    isCrossDomain: true
+                };
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    throw new Error('请求超时（10秒）：目标URL无法访问或响应过慢');
+                } else if (error.message.includes('CORS') || error.message.includes('跨域')) {
+                    throw new Error('跨域限制：目标网站未配置CORS，无法获取任何信息！建议：1. 改用“当前页面测试” 2. 联系目标网站配置Access-Control-Allow-Origin');
+                } else if (error.message.includes('Failed to fetch')) {
+                    throw new Error('请求失败：目标URL无法访问（请检查URL是否正确、网络是否正常）');
+                } else {
+                    throw new Error(`获取基础数据失败：${error.message}`);
+                }
+            }
+        }
+
+        // 获取首屏加载时间（FCP）
+        function getFirstContentfulPaint() {
+            if (!('performance' in window) || !('getEntriesByType' in performance)) {
+                return 0;
+            }
+            const fcpEntries = performance.getEntriesByType('paint').filter(entry => entry.name === 'first-contentful-paint');
+            return fcpEntries.length > 0 ? Math.floor(fcpEntries[0].startTime) : 0;
+        }
+
+        // 获取交互时间（TTI）
+        function getTTI() {
+            const navigation = performance.getEntriesByType('navigation')[0] || {};
+            return navigation ? Math.floor(navigation.domContentLoadedEventEnd || 0) : 0;
+        }
+
+        // 计算性能评分（区分跨域/非跨域）
+        function calculateScore(data, testType) {
+            // 跨域仅基于响应时间评分
+            if (testType === 'custom-url') {
+                if (data.responseTime < 1000) return { score: 90, grade: 'A', desc: '优秀' };
+                if (data.responseTime < 2000) return { score: 75, grade: 'B', desc: '良好' };
+                if (data.responseTime < 3000) return { score: 60, grade: 'C', desc: '及格' };
+                return { score: 50, grade: 'D', desc: '较差' };
+            }
+
+            // 非跨域完整评分
+            let score = 100;
+            if (data.firstContentfulPaint > 1000) score -= Math.min(40, (data.firstContentfulPaint - 1000) / 100);
+            if (data.totalResourceSize > 500 * 1024) score -= Math.min(30, (data.totalResourceSize - 500 * 1024) / (1024 * 10));
+            if (data.tti > 2000) score -= Math.min(20, (data.tti - 2000) / 100);
+            if (data.dnsTime + data.tcpTime > 500) score -= Math.min(10, (data.dnsTime + data.tcpTime - 500) / 50);
+            score = Math.max(0, Math.floor(score));
+
+            if (score >= 90) return { score, grade: 'A', desc: '优秀' };
+            if (score >= 75) return { score, grade: 'B', desc: '良好' };
+            if (score >= 60) return { score, grade: 'C', desc: '及格' };
+            return { score, grade: 'D', desc: '较差' };
+        }
+
+        // 渲染所有结果（区分跨域/非跨域）
+        function renderAllResults(data, testType) {
+            // 渲染评分
+            const { score, grade, desc } = calculateScore(data, testType);
+            document.getElementById('scoreDisplay').innerHTML = `
+                <div class="score-box score-${grade}">
+                    性能评分：${score}分（${grade}级 - ${desc}）
+                    ${testType === 'custom-url' ? '<span style="font-size:12px; margin-left:8px;">（仅基于响应时间）</span>' : ''}
+                </div>
             `;
 
-            // 生成优化建议
-            generateSuggestions(data);
+            // 渲染核心指标（区分跨域标注）
+            renderMetrics(data, testType);
 
-            // 渲染可视化图表
-            renderChart(data);
+            // 仅当前页面渲染资源明细
+            if (testType === 'current-page') {
+                renderResources(data.resources);
+            }
+
+            // 渲染图表（适配跨域数据）
+            renderChart(data, testType);
+
+            // 渲染优化建议（区分跨域）
+            renderSuggestions(data, score, testType);
         }
 
-        // 根据性能指标生成优化建议
-        function generateSuggestions(data) {
-            const suggestions = [];
-            // 首屏加载时间阈值：>3秒需优化
-            if (data.firstContentfulPaint > 3000) {
-                suggestions.push('首屏加载时间过长（>3秒），建议开启ESA边缘压缩、图片懒加载、减少首屏非必要资源');
-            }
-            // 资源总大小阈值：>1MB需优化
-            if (data.resourceSize > 1024 * 1024) {
-                suggestions.push(`资源总大小过大（${(data.resourceSize / 1024 / 1024).toFixed(2)}MB），建议压缩JS/CSS文件、使用WebP/AVIF图片格式、开启Gzip压缩`);
-            }
-            // DNS解析时间阈值：>0.5秒需优化
-            if (data.dnsTime > 500) {
-                suggestions.push('DNS解析时间过长，建议配置DNS预解析（link rel="dns-prefetch"）、使用CDN加速、缩短域名长度');
-            }
-            // TCP连接时间阈值：>1秒需优化
-            if (data.tcpTime > 1000) {
-                suggestions.push('TCP连接时间过长，建议开启HTTP/2、使用长连接、优化服务器响应配置');
-            }
-            // TTI交互时间阈值：>5秒需优化
-            if (data.tti > 5000) {
-                suggestions.push('交互时间（TTI）过长，建议减少首屏JS执行时间、拆分大组件、使用懒加载加载非首屏脚本');
-            }
-            // 无优化点时的提示
-            if (suggestions.length === 0) {
-                suggestions.push('当前页面性能表现优秀，各项指标均在合理范围内，无需额外优化！');
+        // 渲染核心性能指标（标注跨域受限数据）
+        function renderMetrics(data, testType) {
+            const metricsEl = document.getElementById('metrics');
+            let metricsHtml = `
+                <div class="metric-item"><strong>测试URL：</strong>${data.testUrl}</div>
+                <div class="metric-item"><strong>测试时间：</strong>${data.testTime}</div>
+                <div class="metric-item"><strong>HTTP状态码：</strong>${data.statusCode}</div>
+                <div class="metric-item"><strong>响应时间：</strong>${(data.responseTime / 1000).toFixed(2)} 秒</div>
+            `;
+
+            // 非跨域展示完整指标
+            if (testType === 'current-page') {
+                metricsHtml += `
+                    <div class="metric-item"><strong>首屏加载时间（FCP）：</strong>${(data.firstContentfulPaint / 1000).toFixed(2)} 秒</div>
+                    <div class="metric-item"><strong>交互时间（TTI）：</strong>${(data.tti / 1000).toFixed(2)} 秒</div>
+                    <div class="metric-item"><strong>DNS解析时间：</strong>${(data.dnsTime / 1000).toFixed(2)} 秒</div>
+                    <div class="metric-item"><strong>TCP连接时间：</strong>${(data.tcpTime / 1000).toFixed(2)} 秒</div>
+                    <div class="metric-item"><strong>请求响应时间：</strong>${(data.requestTime / 1000).toFixed(2)} 秒</div>
+                    <div class="metric-item"><strong>页面加载时间：</strong>${(data.loadTime / 1000).toFixed(2)} 秒</div>
+                    <div class="metric-item"><strong>总资源大小：</strong>${(data.totalResourceSize / 1024).toFixed(2)} KB</div>
+                    <div class="metric-item"><strong>资源总数：</strong>${data.resourceCount} 个</div>
+                `;
+            } else {
+                // 跨域标注受限指标
+                metricsHtml += `
+                    <div class="metric-item"><strong>首屏加载时间（FCP）：</strong>0 秒 <span class="limited">（跨域受限，无法获取）</span></div>
+                    <div class="metric-item"><strong>交互时间（TTI）：</strong>0 秒 <span class="limited">（跨域受限，无法获取）</span></div>
+                    <div class="metric-item"><strong>DNS解析时间：</strong>0 秒 <span class="limited">（跨域受限，无法获取）</span></div>
+                    <div class="metric-item"><strong>TCP连接时间：</strong>0 秒 <span class="limited">（跨域受限，无法获取）</span></div>
+                    <div class="metric-item"><strong>总资源大小：</strong>${(data.totalResourceSize / 1024).toFixed(2)} KB <span class="limited">（仅响应头数据，非完整资源）</span></div>
+                `;
             }
 
-            // 渲染建议到页面
-            suggestionsEl.innerHTML = suggestions.map(item => `<div class="suggestion-item">• ${item}</div>`).join('');
+            metricsEl.innerHTML = metricsHtml;
         }
 
-        // 渲染ECharts可视化图表
-        function renderChart(data) {
+        // 渲染资源加载明细（仅当前页面）
+        function renderResources(resources) {
+            const resourcesList = document.getElementById('resourcesList');
+            if (resources.length === 0) {
+                resourcesList.innerHTML = '<div style="color: #666;">暂无资源数据</div>';
+                return;
+            }
+
+            // 按类型分组展示
+            const grouped = { script: [], style: [], img: [], other: [] };
+            resources.forEach(item => (grouped[item.type] ? grouped[item.type] : grouped.other).push(item));
+
+            let html = '';
+            if (grouped.script.length > 0) html += `<div style="margin-bottom:10px;"><strong>JS文件（${grouped.script.length}个）：</strong></div>` + grouped.script.map(item => 
+                `<div class="resource-item">名称：${item.name.substring(0,50)}... | 大小：${(item.size/1024).toFixed(2)}KB | 加载时间：${(item.loadTime/1000).toFixed(2)}s</div>`).join('');
+            
+            if (grouped.style.length > 0) html += `<div style="margin:10px 0;"><strong>CSS文件（${grouped.style.length}个）：</strong></div>` + grouped.style.map(item => 
+                `<div class="resource-item">名称：${item.name.substring(0,50)}... | 大小：${(item.size/1024).toFixed(2)}KB | 加载时间：${(item.loadTime/1000).toFixed(2)}s</div>`).join('');
+            
+            if (grouped.img.length > 0) html += `<div style="margin:10px 0;"><strong>图片文件（${grouped.img.length}个）：</strong></div>` + grouped.img.map(item => 
+                `<div class="resource-item">名称：${item.name.substring(0,50)}... | 大小：${(item.size/1024).toFixed(2)}KB | 加载时间：${(item.loadTime/1000).toFixed(2)}s</div>`).join('');
+            
+            if (grouped.other.length > 0) html += `<div style="margin-top:10px;"><strong>其他资源（${grouped.other.length}个）：</strong></div>` + grouped.other.map(item => 
+                `<div class="resource-item">名称：${item.name.substring(0,50)}... | 类型：${item.type} | 大小：${(item.size/1024).toFixed(2)}KB | 加载时间：${(item.loadTime/1000).toFixed(2)}s</div>`).join('');
+
+            resourcesList.innerHTML = html;
+        }
+
+        // 渲染可视化图表（适配跨域数据）
+        function renderChart(data, testType) {
             const chartDom = document.getElementById('chart');
-            // 初始化ECharts实例
             const myChart = echarts.init(chartDom);
-            // 图表配置项
+
+            let xAxisData = ['响应时间'];
+            let seriesData = [(data.responseTime / 1000).toFixed(2)];
+            
+            // 非跨域展示完整指标
+            if (testType === 'current-page') {
+                xAxisData = ['首屏加载', 'TTI交互时间', 'DNS解析', 'TCP连接', '请求响应', '响应时间'];
+                seriesData = [
+                    (data.firstContentfulPaint / 1000).toFixed(2),
+                    (data.tti / 1000).toFixed(2),
+                    (data.dnsTime / 1000).toFixed(2),
+                    (data.tcpTime / 1000).toFixed(2),
+                    (data.requestTime / 1000).toFixed(2),
+                    (data.responseTime / 1000).toFixed(2)
+                ];
+            }
+
             const option = {
                 title: { 
-                    text: `性能指标对比 - ${getRegionName(data.region)}节点`,
-                    left: 'center'
+                    text: testType === 'current-page' ? '核心性能指标对比（单位：秒）' : '基础响应指标（单位：秒）',
+                    left: 'center' 
                 },
-                tooltip: { 
-                    trigger: 'axis',
-                    formatter: '{b}：{c} 秒'
-                },
-                legend: { 
-                    data: [getRegionName(data.region) + '节点'],
-                    bottom: 0
-                },
-                grid: { 
-                    left: '3%', 
-                    right: '4%', 
-                    bottom: '10%', 
-                    containLabel: true 
-                },
-                xAxis: {
-                    type: 'category',
-                    data: ['首屏加载', 'TTI交互时间', 'DNS解析', 'TCP连接']
-                },
-                yAxis: {
-                    type: 'value',
-                    name: '时间（秒）',
-                    axisLabel: { formatter: '{value} s' },
-                    min: 0 // Y轴从0开始，更直观
-                },
-                series: [
-                    {
-                        name: getRegionName(data.region) + '节点',
-                        type: 'bar',
-                        barWidth: '40%', // 柱子宽度
-                        itemStyle: { color: '#0088ff' },
-                        data: [
-                            (data.firstContentfulPaint / 1000).toFixed(2),
-                            (data.tti / 1000).toFixed(2),
-                            (data.dnsTime / 1000).toFixed(2),
-                            (data.tcpTime / 1000).toFixed(2)
-                        ]
-                    }
-                ]
+                tooltip: { trigger: 'axis', formatter: '{b}：{c} 秒' },
+                legend: { data: ['测试结果'], bottom: 0 },
+                grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+                xAxis: { type: 'category', data: xAxisData },
+                yAxis: { type: 'value', name: '时间（秒）', axisLabel: { formatter: '{value} s' }, min: 0 },
+                series: [{
+                    name: '测试结果',
+                    type: 'bar',
+                    barWidth: '40%',
+                    itemStyle: { color: '#0088ff' },
+                    data: seriesData
+                }]
             };
-            // 设置配置项并渲染
+
             myChart.setOption(option);
-            // 监听窗口大小变化，自适应图表
             window.addEventListener('resize', () => myChart.resize());
         }
 
-        // 下载PDF报告功能
-        downloadBtn.addEventListener('click', async () => {
-            if (!testResult) {
-                alert('暂无测试报告可下载，请先完成跑分测试');
+        // 渲染优化建议（区分跨域）
+        function renderSuggestions(data, score, testType) {
+            const suggestionsEl = document.getElementById('suggestions');
+            const suggestions = [];
+
+            // 跨域测试仅给出基础建议
+            if (testType === 'custom-url') {
+                suggestions.push('⚠️ 跨域测试仅能获取基础响应信息，以下建议基于响应时间给出：');
+                if (data.responseTime > 1000) {
+                    suggestions.push('✅ 响应时间偏长：建议目标网站开启CDN加速、优化服务器响应速度、减少接口耗时');
+                } else {
+                    suggestions.push('✅ 响应时间优秀：目标网站基础访问性能良好');
+                }
+                suggestions.push('💡 如需获取完整性能数据，请测试当前页面（无跨域限制）');
+            } else {
+                // 非跨域给出完整建议
+                if (data.firstContentfulPaint > 1500) suggestions.push('✅ 首屏加载时间偏长：开启静态资源压缩、图片懒加载、减少首屏非必要JS/CSS');
+                if (data.tti > 2500) suggestions.push('✅ 交互时间（TTI）偏长：拆分大JS文件、延迟加载非首屏脚本、优化DOM操作');
+                if (data.dnsTime > 300) suggestions.push('✅ DNS解析时间偏长：配置DNS预解析、使用短域名、开启DNS缓存');
+                if (data.tcpTime > 500) suggestions.push('✅ TCP连接时间偏长：开启HTTP/2/HTTP/3、使用长连接');
+                if (data.totalResourceSize > 1024 * 1024) suggestions.push(`✅ 总资源过大（${(data.totalResourceSize/1024/1024).toFixed(2)}MB）：压缩图片、JS/CSS，移除未使用代码`);
+                if (data.resourceCount > 50) suggestions.push(`✅ 资源过多（${data.resourceCount}个）：合并JS/CSS、使用雪碧图`);
+
+                // 高分提示
+                if (score >= 90) {
+                    suggestions.unshift('🎉 页面性能优秀！持续监控即可');
+                } else if (score >= 75) {
+                    suggestions.unshift('👍 页面性能良好，针对性优化即可');
+                } else {
+                    suggestions.unshift('⚠️ 页面性能待优化，优先解决以上问题');
+                }
+            }
+
+            suggestionsEl.innerHTML = suggestions.map(item => `<div class="suggestion-item">${item}</div>`).join('');
+        }
+
+        // 下载PDF报告
+        document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+            if (!performanceData) {
+                alert('暂无测试数据可下载');
                 return;
             }
             try {
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF('p', 'mm', 'a4');
-                
-                // 将结果区域转为canvas（解决HTML转PDF排版问题）
                 const resultDom = document.getElementById('resultArea');
-                const canvas = await html2canvas(resultDom, {
-                    scale: 2, // 提高分辨率
-                    useCORS: true, // 允许跨域图片
-                    logging: false
-                });
+                const canvas = await html2canvas(resultDom, { scale: 2, useCORS: true, logging: false });
                 const imgData = canvas.toDataURL('image/png');
-                const imgWidth = 210; // A4宽度（mm）
+                const imgWidth = 210;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-                // 添加图片到PDF并保存
                 pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                pdf.save(`ESA性能测试报告_${getRegionName(testResult.data.region)}_${new Date().getTime()}.pdf`);
+                pdf.save(`前端性能测试报告_${new Date().getTime()}.pdf`);
                 alert('PDF报告下载成功！');
             } catch (error) {
                 alert(`PDF下载失败：${error.message}`);
             }
         });
 
-        // 辅助函数：地区值转中文名称
-        function getRegionName(region) {
-            const regionMap = {
-                beijing: '北京',
-                shanghai: '上海',
-                guangzhou: '广州',
-                shenzhen: '深圳',
-                hangzhou: '杭州'
-            };
-            return regionMap[region] || region;
+        // 下载JSON原始数据
+        document.getElementById('downloadJsonBtn').addEventListener('click', () => {
+            if (!performanceData) {
+                alert('暂无测试数据可下载');
+                return;
+            }
+            const blob = new Blob([JSON.stringify(performanceData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `性能测试原始数据_${new Date().getTime()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // 更新进度条
+        function updateProgress(percent) {
+            progressFill.style.width = `${percent}%`;
         }
     </script>
 </body>

@@ -1,4 +1,4 @@
-// ESA边缘函数入口文件
+// ESA边缘函数入口文件（模拟数据版）
 export default async function handler(request, response) {
     // 完整CORS跨域配置
     const allowOrigin = request.headers.get('Origin') || '*';
@@ -35,8 +35,8 @@ export default async function handler(request, response) {
             });
         }
 
-        // 发起测试请求，采集性能指标
-        const performanceData = await testPerformance(url, region);
+        // 核心修改：生成模拟性能数据（不再发起真实请求）
+        const performanceData = generateMockPerformanceData(region);
 
         // 返回结果
         response.status(200).json({
@@ -53,72 +53,27 @@ export default async function handler(request, response) {
     }
 }
 
-// 核心函数：测试URL性能（优化版）
-async function testPerformance(targetUrl, region) {
-    // 校验URL协议
-    if (!targetUrl.startsWith('https://')) {
-        throw new Error('测试URL必须是HTTPS协议（ESA Pages为HTTPS，不支持混合内容）');
-    }
+// 生成模拟性能数据（按地区差异化，更贴近真实）
+function generateMockPerformanceData(region) {
+    // 不同地区的基础性能参数（一线城市节点更快）
+    const regionBaseConfig = {
+        beijing: { fcp: 1500, resource: 300 * 1024, tti: 2500, dns: 200, tcp: 300 },
+        shanghai: { fcp: 1200, resource: 280 * 1024, tti: 2200, dns: 180, tcp: 280 },
+        guangzhou: { fcp: 1400, resource: 320 * 1024, tti: 2400, dns: 220, tcp: 310 },
+        shenzhen: { fcp: 1300, resource: 290 * 1024, tti: 2300, dns: 190, tcp: 290 },
+        hangzhou: { fcp: 1100, resource: 270 * 1024, tti: 2100, dns: 170, tcp: 270 }
+    };
 
-    const fetchStartTime = Date.now();
-    let firstContentfulPaint = 0;
-    let resourceSize = 0;
-    let tti = 0;
-    let dnsTime = Math.floor(Math.random() * 800); // 模拟DNS解析时间
-    let tcpTime = Math.floor(Math.random() * 1000); // 模拟TCP连接时间
-
-    try {
-        // 模拟浏览器请求头，避免被反爬虫拦截
-        const headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0'
-        };
-
-        // 发起请求（增加SSL忽略、延长超时、自定义头）
-        const response = await fetch(targetUrl, {
-            method: 'GET',
-            redirect: 'follow',
-            headers: headers,
-            rejectUnauthorized: false, // 忽略SSL证书错误（测试用）
-            signal: AbortSignal.timeout(15000) // 15秒超时
-        });
-
-        // 计算核心性能指标
-        firstContentfulPaint = Date.now() - fetchStartTime;
-        tti = firstContentfulPaint + Math.floor(Math.random() * 1500); // 模拟TTI
-        // 获取资源大小（优先用响应头的content-length）
-        const contentLength = response.headers.get('content-length');
-        resourceSize = contentLength ? parseInt(contentLength, 10) : Math.floor(Math.random() * 500 * 1024) + 100 * 1024;
-
-    } catch (error) {
-        console.error('函数访问目标URL失败：', error); // 输出日志到ESA控制台
-        // 细分错误类型，精准提示
-        if (error.name === 'AbortError') {
-            throw new Error(`请求超时（15秒）：目标URL ${targetUrl} 响应过慢，或ESA节点IP被拦截`);
-        } else if (error.message.includes('certificate') || error.message.includes('SSL')) {
-            throw new Error('SSL证书错误：目标URL的HTTPS证书无效/过期，无法建立安全连接');
-        } else if (error.message.includes('ECONNREFUSED')) {
-            throw new Error('连接被拒绝：目标URL服务器拦截了ESA节点的请求（反爬虫/防盗链）');
-        } else if (error.message.includes('ENOTFOUND')) {
-            throw new Error('域名解析失败：目标URL不存在或DNS配置错误');
-        } else {
-            throw new Error(`访问目标URL失败：${error.message}（建议更换测试URL，如https://www.aliyun.com）`);
-        }
-    }
-
-    // 返回结构化性能数据
+    const base = regionBaseConfig[region] || regionBaseConfig.beijing;
+    // 增加随机波动，模拟真实差异
+    const randomFactor = 0.2; // 20%的随机波动
     return {
         region,
-        firstContentfulPaint,
-        resourceSize,
-        tti,
-        dnsTime,
-        tcpTime,
-        testTime: new Date().toLocaleString()
+        firstContentfulPaint: Math.floor(base.fcp * (1 + (Math.random() - 0.5) * randomFactor)), // 首屏加载
+        resourceSize: Math.floor(base.resource * (1 + (Math.random() - 0.5) * randomFactor)), // 资源大小
+        tti: Math.floor(base.tti * (1 + (Math.random() - 0.5) * randomFactor)), // 交互时间
+        dnsTime: Math.floor(base.dns * (1 + (Math.random() - 0.5) * randomFactor)), // DNS解析
+        tcpTime: Math.floor(base.tcp * (1 + (Math.random() - 0.5) * randomFactor)), // TCP连接
+        testTime: new Date().toLocaleString() // 测试时间
     };
 }
