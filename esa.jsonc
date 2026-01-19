@@ -1,0 +1,10 @@
+{
+  "name": "esa-score",
+  "entry": "./src/index.js",
+  "installCommand": "",
+  "buildCommand": "",
+  "assets": {
+    "directory": "./",
+    "notFoundStrategy": "singlePageApplication"
+  }
+}
