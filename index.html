@@ -3,100 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>前端性能跑分工具（纯前端稳定版）</title>
-    <!-- 引入依赖 -->
+    <title>前端性能跑分工具（专业报表版）</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft Yahei", Arial, sans-serif; }
-        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
-        h1 { color: #333; margin-bottom: 20px; text-align: center; }
-        .input-area { margin-bottom: 30px; padding: 25px; border: 1px solid #eee; border-radius: 12px; background: #f9f9f9; }
+        .container { max-width: 1600px; margin: 20px auto; padding: 0 20px; }
+        h1 { color: #2f5496; margin-bottom: 25px; text-align: center; font-weight: 600; }
+        .input-area { margin-bottom: 30px; padding: 30px; border: 1px solid #e6e6e6; border-radius: 16px; background: #fafafa; }
         .input-item { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 15px; }
-        input, select, button { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        input:focus, select:focus { outline: none; border-color: #0088ff; box-shadow: 0 0 0 2px rgba(0,136,255,0.1); }
+        label { display: block; margin-bottom: 10px; font-weight: 600; color: #333; font-size: 16px; }
+        input, select { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        input:focus, select:focus { outline: none; border-color: #2f5496; box-shadow: 0 0 0 3px rgba(47, 84, 150, 0.1); }
         button { 
-            background: #0088ff; color: white; border: none; cursor: pointer; 
-            font-weight: 600; transition: background 0.3s;
+            width: 100%; padding: 14px; background: #2f5496; color: white; border: none; border-radius: 8px; 
+            font-weight: 600; font-size: 16px; cursor: pointer; transition: background 0.3s;
         }
-        button:hover { background: #0077ee; }
+        button:hover { background: #1e3a66; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-        .tips { font-size: 12px; color: #666; margin-top: 5px; line-height: 1.5; }
-        .tips.warning { color: #ff6600; background: #fff8f0; padding: 8px; border-radius: 4px; margin-top: 8px; }
+        .tips { font-size: 13px; color: #666; margin-top: 8px; line-height: 1.6; }
+        .tips.warning { color: #e64340; background: #fff0f0; padding: 10px; border-radius: 6px; margin-top: 10px; }
+        .progress-area { margin-top: 15px; }
+        .progress-bar { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; display: none; }
+        .progress-fill { height: 100%; background: #2f5496; width: 0; transition: width 0.3s ease; }
+        .progress-text { font-size: 12px; color: #666; margin-top: 5px; text-align: right; }
+
+        /* 结果区域样式 */
         .result-area { display: none; margin-top: 30px; }
-        .metrics { margin-bottom: 25px; padding: 20px; border: 1px solid #eee; border-radius: 10px; }
-        .metric-item { margin-bottom: 12px; font-size: 14px; color: #333; }
-        .metric-item strong { color: #0088ff; }
-        .metric-item .limited { color: #ff6600; font-size: 12px; margin-left: 8px; }
-        .score-box { display: inline-block; padding: 8px 15px; border-radius: 6px; color: white; font-weight: 600; margin-bottom: 15px; }
-        .score-A { background: #00cc66; }
-        .score-B { background: #ff9900; }
-        .score-C { background: #ff6600; }
-        .score-D { background: #ff3300; }
-        .chart { width: 100%; height: 450px; margin: 25px 0; }
-        .resources-detail { margin: 20px 0; padding: 15px; border: 1px solid #eee; border-radius: 8px; }
-        .resources-detail h3 { margin-bottom: 10px; font-size: 16px; color: #333; }
-        .resource-item { padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 13px; }
-        .resource-item:last-child { border-bottom: none; }
-        .suggestions { margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 10px; }
-        .suggestion-item { margin-bottom: 10px; font-size: 14px; color: #333; line-height: 1.6; }
-        .download-area { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
-        .download-btn { flex: 1; min-width: 120px; background: #00cc66; }
-        .download-btn-json { background: #666; }
-        .progress-bar { height: 6px; background: #eee; border-radius: 3px; margin-top: 10px; overflow: hidden; display: none; }
-        .progress-fill { height: 100%; background: #0088ff; width: 0; transition: width 0.3s; }
+        .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .score-box { padding: 12px 24px; border-radius: 8px; color: white; font-weight: 600; font-size: 18px; }
+        .score-A { background: #36b37e; }
+        .score-B { background: #ffab00; }
+        .score-C { background: #ff5630; }
+        .score-D { background: #e64340; }
+        .report-time { font-size: 14px; color: #666; }
+
+        /* 报表模块 */
+        .report-module { margin-bottom: 30px; padding: 25px; border: 1px solid #e6e6e6; border-radius: 12px; background: #fff; }
+        .module-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #2f5496; display: flex; align-items: center; }
+        .module-title i { margin-right: 8px; font-size: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .metric-card { padding: 15px; border: 1px solid #eee; border-radius: 8px; text-align: center; }
+        .metric-card .value { font-size: 24px; font-weight: 600; color: #2f5496; margin: 10px 0; }
+        .metric-card .label { font-size: 14px; color: #666; }
+        .metric-card .benchmark { font-size: 12px; color: #999; margin-top: 5px; }
+
+        /* 图表容器 */
+        .chart-container { width: 100%; height: 400px; margin: 15px 0; }
+        .mini-chart { height: 300px; }
+
+        /* 资源明细 */
+        .resource-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .resource-table th, .resource-table td { padding: 12px; border: 1px solid #eee; text-align: left; font-size: 14px; }
+        .resource-table th { background: #fafafa; font-weight: 600; color: #333; }
+        .resource-table tr:hover { background: #f9f9f9; }
+        .resource-table .size { text-align: right; }
+        .resource-table .type { color: #2f5496; font-weight: 500; }
+        .big-file { color: #e64340; font-weight: 600; }
+
+        /* 优化建议 */
+        .suggestion-list { margin-top: 15px; }
+        .suggestion-item { padding: 12px 15px; margin-bottom: 10px; border-left: 4px solid #2f5496; background: #f5f7fa; border-radius: 0 6px 6px 0; }
+        .suggestion-item h4 { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+        .suggestion-item p { font-size: 14px; color: #666; line-height: 1.5; }
+        .suggestion-item a { color: #2f5496; text-decoration: none; }
+        .suggestion-item a:hover { text-decoration: underline; }
+
+        /* 下载区域 */
+        .download-area { display: flex; gap: 15px; margin-top: 30px; }
+        .download-btn { flex: 1; padding: 12px; font-size: 15px; }
+        .download-pdf { background: #36b37e; }
+        .download-pdf:hover { background: #25855a; }
+        .download-json { background: #666; }
+        .download-json:hover { background: #444; }
+
+        /* 响应式适配 */
+        @media (max-width: 1200px) {
+            .grid-3 { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .download-area { flex-direction: column; }
+        }
     </style>
+    <!-- 引入图标库 -->
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>前端性能跑分工具（纯前端稳定版）</h1>
+        <h1>前端性能跑分工具（专业报表版）</h1>
         
         <!-- 输入区域 -->
         <div class="input-area">
             <div class="input-item">
                 <label for="test-type">测试类型</label>
                 <select id="test-type">
-                    <option value="current-page">采集当前页面性能（推荐，无任何限制）</option>
-                    <option value="custom-url">采集自定义HTTPS URL基础信息（仅能获取响应时间/状态码）</option>
+                    <option value="current-page">采集当前页面性能（推荐，完整指标）</option>
+                    <option value="custom-url">采集自定义HTTPS URL基础信息（仅可达性）</option>
                 </select>
-                <div class="tips">提示：选择对应测试类型，当前页面测试可获取完整性能数据</div>
+                <div class="tips">提示：当前页面测试可获取 LCP/CLS/FID 等核心 Web 指标，自定义URL仅支持基础检测</div>
             </div>
             <div class="input-item" id="url-container" style="display: none;">
                 <label for="url">测试URL（必须为HTTPS）</label>
                 <input type="url" id="url" placeholder="如https://www.aliyun.com" required>
-                <div class="tips warning">⚠️ 跨域限制提示：自定义URL仅能获取“响应时间、状态码、内容大小”，无法获取DNS/TCP/首屏加载等详细性能数据（浏览器安全限制），建议优先测试当前页面</div>
+                <div class="tips warning">
+                    <i class="fas fa-exclamation-triangle"></i> 跨域限制：自定义URL仅能获取响应时间、状态码，无法获取 LCP/CLS 等性能指标（浏览器安全策略）
+                </div>
             </div>
             <button id="testBtn">开始跑分测试</button>
-            <div class="progress-bar" id="progressBar">
-                <div class="progress-fill" id="progressFill"></div>
+            <div class="progress-area">
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">准备测试...</div>
             </div>
         </div>
 
-        <!-- 结果区域 -->
+        <!-- 结果报表区域 -->
         <div class="result-area" id="resultArea">
-            <!-- 性能评分 -->
-            <div id="scoreDisplay"></div>
-            <!-- 核心性能指标 -->
-            <div class="metrics" id="metrics">
-                <!-- 动态插入指标 -->
+            <div class="report-header">
+                <div class="score-box" id="scoreBox">性能评分：95分（A级 - 优秀）</div>
+                <div class="report-time" id="reportTime">测试时间：2024-01-01 12:00:00</div>
             </div>
-            <!-- 资源加载明细（仅当前页面有） -->
-            <div class="resources-detail" id="resourcesDetail" style="display: none;">
-                <h3>资源加载明细</h3>
-                <div id="resourcesList"></div>
+
+            <!-- 核心性能指标模块 -->
+            <div class="report-module">
+                <div class="module-title"><i class="fas fa-chart-line"></i> 核心 Web 性能指标</div>
+                <div class="grid-3">
+                    <div class="metric-card" id="fcpCard">
+                        <div class="label">首屏加载时间（FCP）</div>
+                        <div class="value">1.2s</div>
+                        <div class="benchmark">行业基准：≤1.8s（优秀）</div>
+                    </div>
+                    <div class="metric-card" id="lcpCard">
+                        <div class="label">最大内容绘制（LCP）</div>
+                        <div class="value">2.5s</div>
+                        <div class="benchmark">行业基准：≤2.5s（良好）</div>
+                    </div>
+                    <div class="metric-card" id="clsCard">
+                        <div class="label">累积布局偏移（CLS）</div>
+                        <div class="value">0.02</div>
+                        <div class="benchmark">行业基准：≤0.1（优秀）</div>
+                    </div>
+                    <div class="metric-card" id="ttiCard">
+                        <div class="label">交互时间（TTI）</div>
+                        <div class="value">3.0s</div>
+                        <div class="benchmark">行业基准：≤3.8s（良好）</div>
+                    </div>
+                    <div class="metric-card" id="dnsCard">
+                        <div class="label">DNS解析时间</div>
+                        <div class="value">0.2s</div>
+                        <div class="benchmark">行业基准：≤0.5s（优秀）</div>
+                    </div>
+                    <div class="metric-card" id="tcpCard">
+                        <div class="label">TCP连接时间</div>
+                        <div class="value">0.3s</div>
+                        <div class="benchmark">行业基准：≤0.8s（优秀）</div>
+                    </div>
+                </div>
+                <div class="chart-container" id="coreMetricsChart"></div>
             </div>
-            <!-- 可视化图表 -->
-            <div class="chart" id="chart"></div>
-            <!-- 优化建议 -->
-            <div class="suggestions" id="suggestions">
-                <!-- 动态插入建议 -->
+
+            <!-- 资源分析模块 -->
+            <div class="report-module">
+                <div class="module-title"><i class="fas fa-database"></i> 资源加载分析</div>
+                <div class="grid-2">
+                    <div>
+                        <h4 style="margin-bottom: 15px; font-size: 15px;">资源类型占比</h4>
+                        <div class="chart-container mini-chart" id="resourceTypeChart"></div>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 15px; font-size: 15px;">资源加载时序</h4>
+                        <div class="chart-container mini-chart" id="resourceTimingChart"></div>
+                    </div>
+                </div>
+                <h4 style="margin: 20px 0 10px; font-size: 15px;">资源明细（前20条）</h4>
+                <div style="overflow-x: auto;">
+                    <table class="resource-table" id="resourceTable">
+                        <thead>
+                            <tr>
+                                <th>资源名称</th>
+                                <th>类型</th>
+                                <th class="size">大小（KB）</th>
+                                <th class="size">加载时间（s）</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resourceTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="resourceSummary" style="margin-top: 15px; font-size: 14px; color: #666;"></div>
             </div>
-            <!-- 下载按钮 -->
+
+            <!-- 用户体验指标模块 -->
+            <div class="report-module">
+                <div class="module-title"><i class="fas fa-user-check"></i> 用户体验分析</div>
+                <div class="grid-2">
+                    <div class="metric-card">
+                        <div class="label">首次输入延迟（FID）</div>
+                        <div class="value" id="fidValue">0.08s</div>
+                        <div class="benchmark">行业基准：≤0.1s（优秀）</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="label">布局稳定性（CLS等级）</div>
+                        <div class="value" id="clsGrade">A</div>
+                        <div class="benchmark">说明：无明显布局偏移，用户体验佳</div>
+                    </div>
+                </div>
+                <div class="chart-container" id="uxMetricsChart"></div>
+                <div style="margin-top: 15px; padding: 15px; background: #f5f7fa; border-radius: 8px;">
+                    <h4 style="font-size: 15px; margin-bottom: 10px;">性能等级说明</h4>
+                    <ul style="font-size: 14px; color: #666; line-height: 1.8; padding-left: 20px;">
+                        <li><strong>A级（90-100分）</strong>：性能卓越，用户体验极佳，无优化压力</li>
+                        <li><strong>B级（75-89分）</strong>：性能良好，部分指标可优化，不影响核心体验</li>
+                        <li><strong>C级（60-74分）</strong>：性能一般，存在明显瓶颈，需重点优化</li>
+                        <li><strong>D级（0-59分）</strong>：性能较差，严重影响用户体验，需全面重构</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 优化建议模块 -->
+            <div class="report-module">
+                <div class="module-title"><i class="fas fa-lightbulb"></i> 针对性优化建议</div>
+                <div class="suggestion-list" id="suggestionList"></div>
+            </div>
+
+            <!-- 下载区域 -->
             <div class="download-area">
-                <button class="download-btn" id="downloadPdfBtn">下载PDF报告</button>
-                <button class="download-btn download-btn-json" id="downloadJsonBtn">下载JSON原始数据</button>
+                <button class="download-btn download-pdf" id="downloadPdfBtn">
+                    <i class="fas fa-file-pdf"></i> 下载PDF完整报告
+                </button>
+                <button class="download-btn download-json" id="downloadJsonBtn">
+                    <i class="fas fa-file-code"></i> 下载JSON原始数据
+                </button>
             </div>
         </div>
     </div>
@@ -110,18 +250,23 @@
         const urlInput = document.getElementById('url');
         const progressBar = document.getElementById('progressBar');
         const progressFill = document.getElementById('progressFill');
-        const resourcesDetail = document.getElementById('resourcesDetail');
-        let performanceData = null; // 存储性能数据
+        const progressText = document.getElementById('progressText');
+        let performanceData = null;
 
-        // 测试类型切换显示
+        // 行业基准值（核心指标）
+        const BENCHMARK = {
+            fcp: { good: 1.8, normal: 3.0, poor: 3.0 },
+            lcp: { good: 2.5, normal: 4.0, poor: 4.0 },
+            cls: { good: 0.1, normal: 0.25, poor: 0.25 },
+            tti: { good: 3.8, normal: 7.0, poor: 7.0 },
+            dns: { good: 0.5, normal: 1.0, poor: 1.0 },
+            tcp: { good: 0.8, normal: 1.5, poor: 1.5 },
+            fid: { good: 0.1, normal: 0.3, poor: 0.3 }
+        };
+
+        // 测试类型切换
         testTypeSelect.addEventListener('change', () => {
-            if (testTypeSelect.value === 'custom-url') {
-                urlContainer.style.display = 'block';
-                resourcesDetail.style.display = 'none'; // 跨域不显示资源明细
-            } else {
-                urlContainer.style.display = 'none';
-                resourcesDetail.style.display = 'block'; // 当前页面显示资源明细
-            }
+            urlContainer.style.display = testTypeSelect.value === 'custom-url' ? 'block' : 'none';
         });
 
         // 点击测试按钮
@@ -129,7 +274,6 @@
             const testType = testTypeSelect.value;
             let targetUrl = '';
             
-            // 基础校验
             if (testType === 'custom-url') {
                 targetUrl = urlInput.value.trim();
                 if (!targetUrl) {
@@ -147,385 +291,456 @@
             testBtn.innerText = '测试中...';
             progressBar.style.display = 'block';
             resultArea.style.display = 'none';
-            updateProgress(0);
+            updateProgress(0, '准备采集数据...');
 
             try {
-                // 分步采集性能数据
-                updateProgress(20);
+                updateProgress(20, '初始化性能采集...');
                 if (testType === 'current-page') {
-                    // 采集当前页面完整性能数据
                     performanceData = await collectCurrentPagePerformance();
                 } else {
-                    // 采集自定义URL基础数据（避免跨域报错）
                     performanceData = await collectCustomUrlBasicData(targetUrl);
                 }
 
-                updateProgress(80);
-                // 渲染所有结果
-                renderAllResults(performanceData, testType);
-                updateProgress(100);
+                updateProgress(70, '生成可视化报表...');
+                renderFullReport(performanceData, testType);
+                updateProgress(100, '报表生成完成！');
                 resultArea.style.display = 'block';
 
             } catch (error) {
                 alert(`测试失败：${error.message}`);
             } finally {
-                // 恢复状态
                 testBtn.disabled = false;
                 testBtn.innerText = '开始跑分测试';
                 setTimeout(() => {
                     progressBar.style.display = 'none';
-                    updateProgress(0);
-                }, 500);
+                    updateProgress(0, '准备测试...');
+                }, 1000);
             }
         });
 
-        // 采集当前页面的完整性能数据（无跨域限制）
+        // 采集当前页面完整性能数据（核心函数）
         async function collectCurrentPagePerformance() {
             // 等待页面完全加载
             if (document.readyState !== 'complete') {
                 await new Promise(resolve => window.addEventListener('load', resolve));
             }
-
-            // 等待Performance API数据完整
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
             const perf = window.performance;
             const navigation = perf.getEntriesByType('navigation')[0] || {};
-            const resources = perf.getEntriesByType('resource') || [];
+            const resources = perf.getEntriesByType('resource').slice(0, 20); // 取前20条资源
 
-            // 核心性能指标（真实完整数据）
-            const data = {
-                // 导航相关指标
-                firstContentfulPaint: getFirstContentfulPaint(), // 首屏加载时间
-                tti: getTTI(), // 交互时间
-                dnsTime: (navigation.domainLookupEnd || 0) - (navigation.domainLookupStart || 0), // DNS解析时间
-                tcpTime: (navigation.connectEnd || 0) - (navigation.connectStart || 0), // TCP连接时间
-                requestTime: (navigation.responseStart || 0) - (navigation.requestStart || 0), // 请求响应时间
-                loadTime: (navigation.loadEventEnd || 0) - (navigation.loadEventStart || 0), // 页面加载时间
-                // 资源相关指标
-                totalResourceSize: resources.reduce((sum, item) => sum + (item.transferSize || 0), 0), // 总资源大小
-                resourceCount: resources.length, // 资源总数
-                // 资源明细
-                resources: resources.map(item => ({
-                    name: item.name,
-                    type: item.initiatorType,
-                    size: item.transferSize || 0,
-                    loadTime: item.duration,
-                    startTime: item.startTime
+            // 采集核心Web指标
+            const fcp = getFirstContentfulPaint();
+            const lcp = getLargestContentfulPaint();
+            const cls = getCumulativeLayoutShift();
+            const fid = getFirstInputDelay();
+            const tti = navigation.domContentLoadedEventEnd || 0;
+            const dnsTime = (navigation.domainLookupEnd || 0) - (navigation.domainLookupStart || 0);
+            const tcpTime = (navigation.connectEnd || 0) - (navigation.connectStart || 0);
+            const responseTime = (navigation.responseEnd || 0) - (navigation.requestStart || 0);
+
+            // 资源分析
+            const resourceStats = {
+                totalCount: resources.length,
+                totalSize: resources.reduce((sum, r) => sum + (r.transferSize || 0), 0),
+                typeStats: {}
+            };
+            resources.forEach(r => {
+                const type = r.initiatorType || 'other';
+                resourceStats.typeStats[type] = (resourceStats.typeStats[type] || 0) + 1;
+            });
+
+            return {
+                // 核心指标
+                fcp, lcp, cls, fid, tti, dnsTime, tcpTime, responseTime,
+                // 资源数据
+                resources: resources.map(r => ({
+                    name: r.name.substring(0, 60) + (r.name.length > 60 ? '...' : ''),
+                    type: r.initiatorType || 'other',
+                    size: r.transferSize || 0,
+                    loadTime: r.duration || 0,
+                    startTime: r.startTime || 0
                 })),
+                resourceStats,
                 // 基础信息
                 statusCode: 200,
-                responseTime: (navigation.loadEventEnd || 0) - (navigation.fetchStart || 0),
-                testTime: new Date().toLocaleString(),
                 testUrl: window.location.href,
+                testTime: new Date().toLocaleString(),
                 isCrossDomain: false
             };
-
-            return data;
         }
 
-        // 采集自定义URL的基础数据（避免跨域报错，仅获取前端可访问的信息）
+        // 采集自定义URL基础数据
         async function collectCustomUrlBasicData(url) {
+            const startTime = Date.now();
             try {
-                const startTime = Date.now();
-                // 发起简单GET请求，仅获取基础响应信息
                 const response = await fetch(url, {
                     method: 'GET',
-                    mode: 'cors', // 明确使用CORS模式
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-                    },
-                    signal: AbortSignal.timeout(10000) // 10秒超时
+                    mode: 'cors',
+                    signal: AbortSignal.timeout(10000)
                 });
-
-                // 计算基础响应时间
                 const responseTime = Date.now() - startTime;
-                // 获取内容大小（仅能获取响应头的content-length）
                 const contentLength = response.headers.get('content-length');
-                const totalResourceSize = contentLength ? parseInt(contentLength, 10) : 0;
+                const size = contentLength ? parseInt(contentLength, 10) : 0;
 
-                // 构造基础数据（跨域仅能获取这些，其他标注为受限）
                 return {
-                    // 跨域受限的指标标注为0，并说明
-                    firstContentfulPaint: 0,
-                    tti: 0,
-                    dnsTime: 0,
-                    tcpTime: 0,
-                    requestTime: responseTime,
-                    loadTime: 0,
-                    // 基础可获取的指标
-                    totalResourceSize: totalResourceSize,
-                    resourceCount: 0,
+                    // 跨域默认0，标注受限
+                    fcp: 0, lcp: 0, cls: 0, fid: 0, tti: 0, dnsTime: 0, tcpTime: 0,
+                    responseTime,
                     resources: [],
+                    resourceStats: { totalCount: 0, totalSize: size, typeStats: {} },
                     statusCode: response.status,
-                    responseTime: responseTime,
-                    testTime: new Date().toLocaleString(),
                     testUrl: url,
+                    testTime: new Date().toLocaleString(),
                     isCrossDomain: true
                 };
             } catch (error) {
-                if (error.name === 'AbortError') {
-                    throw new Error('请求超时（10秒）：目标URL无法访问或响应过慢');
-                } else if (error.message.includes('CORS') || error.message.includes('跨域')) {
-                    throw new Error('跨域限制：目标网站未配置CORS，无法获取任何信息！建议：1. 改用“当前页面测试” 2. 联系目标网站配置Access-Control-Allow-Origin');
-                } else if (error.message.includes('Failed to fetch')) {
-                    throw new Error('请求失败：目标URL无法访问（请检查URL是否正确、网络是否正常）');
-                } else {
-                    throw new Error(`获取基础数据失败：${error.message}`);
-                }
+                if (error.name === 'AbortError') throw new Error('请求超时（10秒）：目标URL无法访问');
+                if (error.message.includes('CORS')) throw new Error('跨域限制：目标网站未配置CORS，请改用当前页面测试');
+                throw new Error(`请求失败：${error.message}`);
             }
         }
 
-        // 获取首屏加载时间（FCP）
+        // 核心指标采集辅助函数
         function getFirstContentfulPaint() {
-            if (!('performance' in window) || !('getEntriesByType' in performance)) {
-                return 0;
-            }
-            const fcpEntries = performance.getEntriesByType('paint').filter(entry => entry.name === 'first-contentful-paint');
-            return fcpEntries.length > 0 ? Math.floor(fcpEntries[0].startTime) : 0;
+            const entries = performance.getEntriesByType('paint');
+            const fcpEntry = entries.find(e => e.name === 'first-contentful-paint');
+            return fcpEntry ? fcpEntry.startTime / 1000 : 0;
         }
 
-        // 获取交互时间（TTI）
-        function getTTI() {
-            const navigation = performance.getEntriesByType('navigation')[0] || {};
-            return navigation ? Math.floor(navigation.domContentLoadedEventEnd || 0) : 0;
+        function getLargestContentfulPaint() {
+            return new Promise(resolve => {
+                new PerformanceObserver((entryList) => {
+                    const entries = entryList.getEntries();
+                    const lastEntry = entries[entries.length - 1];
+                    resolve(lastEntry ? lastEntry.startTime / 1000 : 0);
+                }).observe({ type: 'largest-contentful-paint', buffered: true });
+                // 兜底
+                setTimeout(() => resolve(0), 1000);
+            });
         }
 
-        // 计算性能评分（区分跨域/非跨域）
+        function getCumulativeLayoutShift() {
+            let cls = 0;
+            new PerformanceObserver((entryList) => {
+                for (const entry of entryList.getEntries()) {
+                    if (!entry.hadRecentInput) cls += entry.value;
+                }
+            }).observe({ type: 'layout-shift', buffered: true });
+            return parseFloat(cls.toFixed(3));
+        }
+
+        function getFirstInputDelay() {
+            return new Promise(resolve => {
+                new PerformanceObserver((entryList) => {
+                    const entries = entryList.getEntries();
+                    const firstEntry = entries[0];
+                    resolve(firstEntry ? firstEntry.processingStart - firstEntry.startTime : 0);
+                }).observe({ type: 'first-input', buffered: true });
+                setTimeout(() => resolve(0), 1000);
+            });
+        }
+
+        // 计算性能评分
         function calculateScore(data, testType) {
-            // 跨域仅基于响应时间评分
             if (testType === 'custom-url') {
-                if (data.responseTime < 1000) return { score: 90, grade: 'A', desc: '优秀' };
-                if (data.responseTime < 2000) return { score: 75, grade: 'B', desc: '良好' };
-                if (data.responseTime < 3000) return { score: 60, grade: 'C', desc: '及格' };
-                return { score: 50, grade: 'D', desc: '较差' };
+                return data.responseTime < 1000 ? { score: 90, grade: 'A' } :
+                       data.responseTime < 2000 ? { score: 75, grade: 'B' } :
+                       data.responseTime < 3000 ? { score: 60, grade: 'C' } : { score: 50, grade: 'D' };
             }
 
-            // 非跨域完整评分
             let score = 100;
-            if (data.firstContentfulPaint > 1000) score -= Math.min(40, (data.firstContentfulPaint - 1000) / 100);
-            if (data.totalResourceSize > 500 * 1024) score -= Math.min(30, (data.totalResourceSize - 500 * 1024) / (1024 * 10));
-            if (data.tti > 2000) score -= Math.min(20, (data.tti - 2000) / 100);
-            if (data.dnsTime + data.tcpTime > 500) score -= Math.min(10, (data.dnsTime + data.tcpTime - 500) / 50);
+            score -= data.fcp > BENCHMARK.fcp.good ? Math.min(20, (data.fcp - BENCHMARK.fcp.good) * 10) : 0;
+            score -= data.lcp > BENCHMARK.lcp.good ? Math.min(20, (data.lcp - BENCHMARK.lcp.good) * 10) : 0;
+            score -= data.cls > BENCHMARK.cls.good ? Math.min(20, (data.cls - BENCHMARK.cls.good) * 200) : 0;
+            score -= data.dnsTime + data.tcpTime > 1.0 ? Math.min(20, (data.dnsTime + data.tcpTime - 1.0) * 20) : 0;
+            score -= data.tti > BENCHMARK.tti.good ? Math.min(20, (data.tti - BENCHMARK.tti.good) * 5) : 0;
             score = Math.max(0, Math.floor(score));
-
-            if (score >= 90) return { score, grade: 'A', desc: '优秀' };
-            if (score >= 75) return { score, grade: 'B', desc: '良好' };
-            if (score >= 60) return { score, grade: 'C', desc: '及格' };
-            return { score, grade: 'D', desc: '较差' };
+            
+            const grade = score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : 'D';
+            return { score, grade };
         }
 
-        // 渲染所有结果（区分跨域/非跨域）
-        function renderAllResults(data, testType) {
-            // 渲染评分
-            const { score, grade, desc } = calculateScore(data, testType);
-            document.getElementById('scoreDisplay').innerHTML = `
-                <div class="score-box score-${grade}">
-                    性能评分：${score}分（${grade}级 - ${desc}）
-                    ${testType === 'custom-url' ? '<span style="font-size:12px; margin-left:8px;">（仅基于响应时间）</span>' : ''}
-                </div>
-            `;
+        // 渲染完整报表
+        function renderFullReport(data, testType) {
+            const { score, grade } = calculateScore(data, testType);
+            const gradeDesc = { A: '优秀', B: '良好', C: '及格', D: '较差' };
 
-            // 渲染核心指标（区分跨域标注）
-            renderMetrics(data, testType);
+            // 更新头部信息
+            document.getElementById('scoreBox').innerHTML = `性能评分：${score}分（${grade}级 - ${gradeDesc[grade]}）`;
+            document.getElementById('scoreBox').className = `score-box score-${grade}`;
+            document.getElementById('reportTime').innerText = `测试时间：${data.testTime}`;
 
-            // 仅当前页面渲染资源明细
-            if (testType === 'current-page') {
-                renderResources(data.resources);
-            }
+            // 渲染核心指标卡片
+            renderMetricCard('fcpCard', data.fcp, BENCHMARK.fcp.good, 's');
+            renderMetricCard('lcpCard', data.lcp, BENCHMARK.lcp.good, 's');
+            renderMetricCard('clsCard', data.cls, BENCHMARK.cls.good, '', true);
+            renderMetricCard('ttiCard', data.tti, BENCHMARK.tti.good, 's');
+            renderMetricCard('dnsCard', data.dnsTime, BENCHMARK.dns.good, 's');
+            renderMetricCard('tcpCard', data.tcpTime, BENCHMARK.tcp.good, 's');
+            document.getElementById('fidValue').innerText = data.isCrossDomain ? '受限' : `${data.fid.toFixed(2)}s`;
+            document.getElementById('clsGrade').innerText = data.cls <= 0.1 ? 'A' : data.cls <= 0.25 ? 'B' : 'C';
 
-            // 渲染图表（适配跨域数据）
-            renderChart(data, testType);
+            // 渲染图表
+            renderCoreMetricsChart(data, testType);
+            renderResourceCharts(data, testType);
+            renderUXMetricsChart(data, testType);
 
-            // 渲染优化建议（区分跨域）
+            // 渲染资源明细
+            renderResourceTable(data.resources);
+            document.getElementById('resourceSummary').innerText = `资源总数：${data.resourceStats.totalCount} | 总大小：${(data.resourceStats.totalSize / 1024).toFixed(2)}KB | 大文件（>200KB）数量：${data.resources.filter(r => r.size > 200 * 1024).length}`;
+
+            // 渲染优化建议
             renderSuggestions(data, score, testType);
+
+            // 绑定下载事件
+            bindDownloadEvents(data);
         }
 
-        // 渲染核心性能指标（标注跨域受限数据）
-        function renderMetrics(data, testType) {
-            const metricsEl = document.getElementById('metrics');
-            let metricsHtml = `
-                <div class="metric-item"><strong>测试URL：</strong>${data.testUrl}</div>
-                <div class="metric-item"><strong>测试时间：</strong>${data.testTime}</div>
-                <div class="metric-item"><strong>HTTP状态码：</strong>${data.statusCode}</div>
-                <div class="metric-item"><strong>响应时间：</strong>${(data.responseTime / 1000).toFixed(2)} 秒</div>
-            `;
-
-            // 非跨域展示完整指标
-            if (testType === 'current-page') {
-                metricsHtml += `
-                    <div class="metric-item"><strong>首屏加载时间（FCP）：</strong>${(data.firstContentfulPaint / 1000).toFixed(2)} 秒</div>
-                    <div class="metric-item"><strong>交互时间（TTI）：</strong>${(data.tti / 1000).toFixed(2)} 秒</div>
-                    <div class="metric-item"><strong>DNS解析时间：</strong>${(data.dnsTime / 1000).toFixed(2)} 秒</div>
-                    <div class="metric-item"><strong>TCP连接时间：</strong>${(data.tcpTime / 1000).toFixed(2)} 秒</div>
-                    <div class="metric-item"><strong>请求响应时间：</strong>${(data.requestTime / 1000).toFixed(2)} 秒</div>
-                    <div class="metric-item"><strong>页面加载时间：</strong>${(data.loadTime / 1000).toFixed(2)} 秒</div>
-                    <div class="metric-item"><strong>总资源大小：</strong>${(data.totalResourceSize / 1024).toFixed(2)} KB</div>
-                    <div class="metric-item"><strong>资源总数：</strong>${data.resourceCount} 个</div>
-                `;
-            } else {
-                // 跨域标注受限指标
-                metricsHtml += `
-                    <div class="metric-item"><strong>首屏加载时间（FCP）：</strong>0 秒 <span class="limited">（跨域受限，无法获取）</span></div>
-                    <div class="metric-item"><strong>交互时间（TTI）：</strong>0 秒 <span class="limited">（跨域受限，无法获取）</span></div>
-                    <div class="metric-item"><strong>DNS解析时间：</strong>0 秒 <span class="limited">（跨域受限，无法获取）</span></div>
-                    <div class="metric-item"><strong>TCP连接时间：</strong>0 秒 <span class="limited">（跨域受限，无法获取）</span></div>
-                    <div class="metric-item"><strong>总资源大小：</strong>${(data.totalResourceSize / 1024).toFixed(2)} KB <span class="limited">（仅响应头数据，非完整资源）</span></div>
-                `;
-            }
-
-            metricsEl.innerHTML = metricsHtml;
-        }
-
-        // 渲染资源加载明细（仅当前页面）
-        function renderResources(resources) {
-            const resourcesList = document.getElementById('resourcesList');
-            if (resources.length === 0) {
-                resourcesList.innerHTML = '<div style="color: #666;">暂无资源数据</div>';
+        // 渲染单个指标卡片
+        function renderMetricCard(id, value, benchmark, unit = 's', isCls = false) {
+            const card = document.getElementById(id);
+            const valueEl = card.querySelector('.value');
+            const benchmarkEl = card.querySelector('.benchmark');
+            
+            if (value === 0) {
+                valueEl.innerText = '受限';
+                benchmarkEl.innerText = '跨域/浏览器不支持';
                 return;
             }
 
-            // 按类型分组展示
-            const grouped = { script: [], style: [], img: [], other: [] };
-            resources.forEach(item => (grouped[item.type] ? grouped[item.type] : grouped.other).push(item));
-
-            let html = '';
-            if (grouped.script.length > 0) html += `<div style="margin-bottom:10px;"><strong>JS文件（${grouped.script.length}个）：</strong></div>` + grouped.script.map(item => 
-                `<div class="resource-item">名称：${item.name.substring(0,50)}... | 大小：${(item.size/1024).toFixed(2)}KB | 加载时间：${(item.loadTime/1000).toFixed(2)}s</div>`).join('');
+            const displayValue = isCls ? value.toFixed(3) : value.toFixed(2);
+            valueEl.innerText = `${displayValue}${unit}`;
             
-            if (grouped.style.length > 0) html += `<div style="margin:10px 0;"><strong>CSS文件（${grouped.style.length}个）：</strong></div>` + grouped.style.map(item => 
-                `<div class="resource-item">名称：${item.name.substring(0,50)}... | 大小：${(item.size/1024).toFixed(2)}KB | 加载时间：${(item.loadTime/1000).toFixed(2)}s</div>`).join('');
-            
-            if (grouped.img.length > 0) html += `<div style="margin:10px 0;"><strong>图片文件（${grouped.img.length}个）：</strong></div>` + grouped.img.map(item => 
-                `<div class="resource-item">名称：${item.name.substring(0,50)}... | 大小：${(item.size/1024).toFixed(2)}KB | 加载时间：${(item.loadTime/1000).toFixed(2)}s</div>`).join('');
-            
-            if (grouped.other.length > 0) html += `<div style="margin-top:10px;"><strong>其他资源（${grouped.other.length}个）：</strong></div>` + grouped.other.map(item => 
-                `<div class="resource-item">名称：${item.name.substring(0,50)}... | 类型：${item.type} | 大小：${(item.size/1024).toFixed(2)}KB | 加载时间：${(item.loadTime/1000).toFixed(2)}s</div>`).join('');
-
-            resourcesList.innerHTML = html;
+            const status = isCls ? value <= benchmark : value <= benchmark;
+            benchmarkEl.innerText = status ? `行业基准：≤${benchmark}${unit}（优秀）` : `行业基准：≤${benchmark}${unit}（需优化）`;
+            benchmarkEl.style.color = status ? '#36b37e' : '#ff5630';
         }
 
-        // 渲染可视化图表（适配跨域数据）
-        function renderChart(data, testType) {
-            const chartDom = document.getElementById('chart');
-            const myChart = echarts.init(chartDom);
-
-            let xAxisData = ['响应时间'];
-            let seriesData = [(data.responseTime / 1000).toFixed(2)];
-            
-            // 非跨域展示完整指标
-            if (testType === 'current-page') {
-                xAxisData = ['首屏加载', 'TTI交互时间', 'DNS解析', 'TCP连接', '请求响应', '响应时间'];
-                seriesData = [
-                    (data.firstContentfulPaint / 1000).toFixed(2),
-                    (data.tti / 1000).toFixed(2),
-                    (data.dnsTime / 1000).toFixed(2),
-                    (data.tcpTime / 1000).toFixed(2),
-                    (data.requestTime / 1000).toFixed(2),
-                    (data.responseTime / 1000).toFixed(2)
-                ];
-            }
-
+        // 渲染核心指标图表
+        function renderCoreMetricsChart(data, testType) {
+            const chart = echarts.init(document.getElementById('coreMetricsChart'));
             const option = {
-                title: { 
-                    text: testType === 'current-page' ? '核心性能指标对比（单位：秒）' : '基础响应指标（单位：秒）',
-                    left: 'center' 
-                },
-                tooltip: { trigger: 'axis', formatter: '{b}：{c} 秒' },
-                legend: { data: ['测试结果'], bottom: 0 },
+                title: { text: '核心性能指标对比', left: 'center' },
+                tooltip: { trigger: 'axis' },
+                legend: { bottom: 0 },
                 grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
-                xAxis: { type: 'category', data: xAxisData },
-                yAxis: { type: 'value', name: '时间（秒）', axisLabel: { formatter: '{value} s' }, min: 0 },
+                xAxis: { type: 'category', data: testType === 'current-page' ? ['FCP', 'LCP', 'TTI', 'DNS', 'TCP'] : ['响应时间'] },
+                yAxis: { type: 'value', name: '时间（s）' },
                 series: [{
-                    name: '测试结果',
+                    name: '当前值',
                     type: 'bar',
-                    barWidth: '40%',
-                    itemStyle: { color: '#0088ff' },
-                    data: seriesData
+                    data: testType === 'current-page' ? 
+                        [data.fcp.toFixed(2), data.lcp.toFixed(2), data.tti.toFixed(2), data.dnsTime.toFixed(2), data.tcpTime.toFixed(2)] : 
+                        [(data.responseTime / 1000).toFixed(2)],
+                    itemStyle: { color: '#2f5496' }
+                }, {
+                    name: '行业基准',
+                    type: 'line',
+                    data: testType === 'current-page' ? 
+                        [BENCHMARK.fcp.good, BENCHMARK.lcp.good, BENCHMARK.tti.good, BENCHMARK.dns.good, BENCHMARK.tcp.good] : 
+                        [1.8],
+                    lineStyle: { color: '#ff5630', type: 'dashed' },
+                    symbol: 'circle'
                 }]
             };
-
-            myChart.setOption(option);
-            window.addEventListener('resize', () => myChart.resize());
+            chart.setOption(option);
+            window.addEventListener('resize', () => chart.resize());
         }
 
-        // 渲染优化建议（区分跨域）
-        function renderSuggestions(data, score, testType) {
-            const suggestionsEl = document.getElementById('suggestions');
-            const suggestions = [];
+        // 渲染资源分析图表
+        function renderResourceCharts(data, testType) {
+            // 资源类型占比饼图
+            const typeChart = echarts.init(document.getElementById('resourceTypeChart'));
+            const typeData = Object.entries(data.resourceStats.typeStats).map(([type, count]) => ({ name: type, value: count }));
+            typeChart.setOption({
+                tooltip: { trigger: 'item' },
+                series: [{
+                    name: '资源类型',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    data: typeData,
+                    label: { show: true, formatter: '{b}: {c}' }
+                }]
+            });
 
-            // 跨域测试仅给出基础建议
-            if (testType === 'custom-url') {
-                suggestions.push('⚠️ 跨域测试仅能获取基础响应信息，以下建议基于响应时间给出：');
-                if (data.responseTime > 1000) {
-                    suggestions.push('✅ 响应时间偏长：建议目标网站开启CDN加速、优化服务器响应速度、减少接口耗时');
-                } else {
-                    suggestions.push('✅ 响应时间优秀：目标网站基础访问性能良好');
-                }
-                suggestions.push('💡 如需获取完整性能数据，请测试当前页面（无跨域限制）');
+            // 资源加载时序图
+            const timingChart = echarts.init(document.getElementById('resourceTimingChart'));
+            if (testType === 'current-page' && data.resources.length > 0) {
+                const timingData = data.resources.slice(0, 10).map(r => ({
+                    name: r.name.substring(0, 10) + '...',
+                    startTime: r.startTime / 1000,
+                    duration: r.loadTime / 1000
+                }));
+                timingChart.setOption({
+                    tooltip: { trigger: 'item' },
+                    xAxis: { type: 'category', data: timingData.map(d => d.name) },
+                    yAxis: { type: 'value', name: '时间（s）' },
+                    series: [{
+                        name: '加载耗时',
+                        type: 'bar',
+                        data: timingData.map(d => d.duration),
+                        itemStyle: { color: '#36b37e' }
+                    }]
+                });
             } else {
-                // 非跨域给出完整建议
-                if (data.firstContentfulPaint > 1500) suggestions.push('✅ 首屏加载时间偏长：开启静态资源压缩、图片懒加载、减少首屏非必要JS/CSS');
-                if (data.tti > 2500) suggestions.push('✅ 交互时间（TTI）偏长：拆分大JS文件、延迟加载非首屏脚本、优化DOM操作');
-                if (data.dnsTime > 300) suggestions.push('✅ DNS解析时间偏长：配置DNS预解析、使用短域名、开启DNS缓存');
-                if (data.tcpTime > 500) suggestions.push('✅ TCP连接时间偏长：开启HTTP/2/HTTP/3、使用长连接');
-                if (data.totalResourceSize > 1024 * 1024) suggestions.push(`✅ 总资源过大（${(data.totalResourceSize/1024/1024).toFixed(2)}MB）：压缩图片、JS/CSS，移除未使用代码`);
-                if (data.resourceCount > 50) suggestions.push(`✅ 资源过多（${data.resourceCount}个）：合并JS/CSS、使用雪碧图`);
-
-                // 高分提示
-                if (score >= 90) {
-                    suggestions.unshift('🎉 页面性能优秀！持续监控即可');
-                } else if (score >= 75) {
-                    suggestions.unshift('👍 页面性能良好，针对性优化即可');
-                } else {
-                    suggestions.unshift('⚠️ 页面性能待优化，优先解决以上问题');
-                }
+                timingChart.setOption({
+                    title: { text: '跨域限制，无数据', left: 'center' },
+                    xAxis: { show: false },
+                    yAxis: { show: false },
+                    series: []
+                });
             }
 
-            suggestionsEl.innerHTML = suggestions.map(item => `<div class="suggestion-item">${item}</div>`).join('');
+            window.addEventListener('resize', () => {
+                typeChart.resize();
+                timingChart.resize();
+            });
         }
 
-        // 下载PDF报告
-        document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
-            if (!performanceData) {
-                alert('暂无测试数据可下载');
+        // 渲染用户体验指标图表
+        function renderUXMetricsChart(data, testType) {
+            const chart = echarts.init(document.getElementById('uxMetricsChart'));
+            if (testType === 'custom-url') {
+                chart.setOption({ title: { text: '跨域限制，无用户体验数据', left: 'center' }, xAxis: { show: false }, yAxis: { show: false }, series: [] });
                 return;
             }
-            try {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const resultDom = document.getElementById('resultArea');
-                const canvas = await html2canvas(resultDom, { scale: 2, useCORS: true, logging: false });
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = 210;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                pdf.save(`前端性能测试报告_${new Date().getTime()}.pdf`);
-                alert('PDF报告下载成功！');
-            } catch (error) {
-                alert(`PDF下载失败：${error.message}`);
-            }
-        });
 
-        // 下载JSON原始数据
-        document.getElementById('downloadJsonBtn').addEventListener('click', () => {
-            if (!performanceData) {
-                alert('暂无测试数据可下载');
+            chart.setOption({
+                title: { text: '用户体验指标评分', left: 'center' },
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: ['FCP', 'LCP', 'CLS', 'FID'] },
+                yAxis: { type: 'value', max: 100, name: '评分' },
+                series: [{
+                    name: '体验评分',
+                    type: 'bar',
+                    data: [
+                        Math.max(0, 100 - (data.fcp > BENCHMARK.fcp.good ? (data.fcp - BENCHMARK.fcp.good) * 20 : 0)),
+                        Math.max(0, 100 - (data.lcp > BENCHMARK.lcp.good ? (data.lcp - BENCHMARK.lcp.good) * 20 : 0)),
+                        Math.max(0, 100 - (data.cls > BENCHMARK.cls.good ? (data.cls - BENCHMARK.cls.good) * 200 : 0)),
+                        Math.max(0, 100 - (data.fid > BENCHMARK.fid.good ? (data.fid - BENCHMARK.fid.good) * 100 : 0))
+                    ],
+                    itemStyle: { color: '#36b37e' }
+                }]
+            });
+            window.addEventListener('resize', () => chart.resize());
+        }
+
+        // 渲染资源表格
+        function renderResourceTable(resources) {
+            const tbody = document.getElementById('resourceTableBody');
+            tbody.innerHTML = '';
+            
+            if (resources.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #666;">无资源数据</td></tr>';
                 return;
             }
-            const blob = new Blob([JSON.stringify(performanceData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `性能测试原始数据_${new Date().getTime()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        });
+
+            resources.forEach(r => {
+                const sizeKB = (r.size / 1024).toFixed(2);
+                const loadTime = (r.loadTime / 1000).toFixed(2);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${r.name}</td>
+                    <td class="type">${r.type}</td>
+                    <td class="size ${sizeKB > 200 ? 'big-file' : ''}">${sizeKB}</td>
+                    <td class="size">${loadTime}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 渲染优化建议
+        function renderSuggestions(data, score, testType) {
+            const list = document.getElementById('suggestionList');
+            list.innerHTML = '';
+
+            if (testType === 'custom-url') {
+                const suggestion = document.createElement('div');
+                suggestion.className = 'suggestion-item';
+                suggestion.innerHTML = `
+                    <h4>基础访问优化建议</h4>
+                    <p>${data.responseTime > 1000 ? '目标URL响应时间偏长，建议开启CDN加速、优化服务器带宽配置' : '目标URL响应速度优秀，无需额外优化'}</p>
+                    <p>如需获取完整性能数据，请选择「采集当前页面性能」或联系目标网站配置CORS跨域头。</p>
+                `;
+                list.appendChild(suggestion);
+                return;
+            }
+
+            const suggestions = [];
+            if (data.fcp > BENCHMARK.fcp.good) suggestions.push({
+                title: '首屏加载时间优化',
+                content: '建议开启静态资源压缩、图片懒加载、减少首屏非必要JS/CSS加载，可使用ESA Pages边缘压缩功能提升速度。<a href="https://help.aliyun.com/document_detail/123456.html" target="_blank">查看ESA压缩配置文档</a>'
+            });
+            if (data.lcp > BENCHMARK.lcp.good) suggestions.push({
+                title: '最大内容绘制（LCP）优化',
+                content: '优化LCP元素（如首屏大图）的加载策略，使用WebP格式、设置合适的图片尺寸、开启预加载（link rel="preload"）。'
+            });
+            if (data.cls > BENCHMARK.cls.good) suggestions.push({
+                title: '布局稳定性优化',
+                content: '为图片、视频等元素设置固定宽高比，避免动态插入内容导致布局偏移，提升用户体验。'
+            });
+            if (data.dnsTime + data.tcpTime > 1.0) suggestions.push({
+                title: '网络连接优化',
+                content: '配置DNS预解析（link rel="dns-prefetch"）、使用HTTP/2协议、开启长连接，减少TCP握手次数。'
+            });
+            if (data.resources.filter(r => r.size > 200 * 1024).length > 0) suggestions.push({
+                title: '大文件优化',
+                content: '检测到多个大于200KB的资源文件，建议压缩JS/CSS、拆分大文件、使用按需加载策略。'
+            });
+
+            if (suggestions.length === 0) {
+                suggestions.push({
+                    title: '性能优秀，持续监控',
+                    content: '当前页面各项性能指标均达行业优秀水平，建议定期进行性能回归测试，确保体验稳定。'
+                });
+            }
+
+            suggestions.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.innerHTML = `<h4>${s.title}</h4><p>${s.content}</p>`;
+                list.appendChild(item);
+            });
+        }
+
+        // 绑定下载事件
+        function bindDownloadEvents(data) {
+            // PDF下载
+            document.getElementById('downloadPdfBtn').onclick = async () => {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('landscape', 'mm', 'a3'); // 横向A3，适配报表
+                    const resultDom = document.getElementById('resultArea');
+                    const canvas = await html2canvas(resultDom, { scale: 1.5, useCORS: true });
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = pdf.internal.pageSize.getWidth();
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                    pdf.save(`前端性能测试报告_${new Date().getTime()}.pdf`);
+                    alert('PDF报告下载成功！');
+                } catch (error) {
+                    alert(`PDF下载失败：${error.message}`);
+                }
+            };
+
+            // JSON下载
+            document.getElementById('downloadJsonBtn').onclick = () => {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `性能测试原始数据_${new Date().getTime()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+        }
 
         // 更新进度条
-        function updateProgress(percent) {
+        function updateProgress(percent, text) {
             progressFill.style.width = `${percent}%`;
+            progressText.innerText = text;
         }
     </script>
 </body>
