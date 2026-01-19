@@ -330,16 +330,19 @@
             const navigation = perf.getEntriesByType('navigation')[0] || {};
             const resources = perf.getEntriesByType('resource').slice(0, 20); // 取前20条资源
 
-            // 采集核心Web指标
+            // 修复点1：await获取LCP/FID（确保是数字类型）
             const fcp = getFirstContentfulPaint();
-            const lcp = getLargestContentfulPaint();
+            const lcp = await getLargestContentfulPaint(); // 增加await
             const cls = getCumulativeLayoutShift();
-            const fid = getFirstInputDelay();
-            const tti = navigation.domContentLoadedEventEnd || 0;
-            const dnsTime = (navigation.domainLookupEnd || 0) - (navigation.domainLookupStart || 0);
-            const tcpTime = (navigation.connectEnd || 0) - (navigation.connectStart || 0);
-            const responseTime = (navigation.responseEnd || 0) - (navigation.requestStart || 0);
+            const fid = await getFirstInputDelay(); // 增加await
+            const tti = (navigation.domContentLoadedEventEnd || 0) / 1000; // 转为秒，统一单位
+            const dnsTime = ((navigation.domainLookupEnd || 0) - (navigation.domainLookupStart || 0)) / 1000; // 转为秒
+            const tcpTime = ((navigation.connectEnd || 0) - (navigation.connectStart || 0)) / 1000; // 转为秒
+            const responseTime = ((navigation.responseEnd || 0) - (navigation.requestStart || 0)) / 1000; // 转为秒
 
+            // 修复点2：类型校验，确保所有指标都是数字
+            const safeNumber = (val) => typeof val === 'number' && !isNaN(val) ? val : 0;
+            
             // 资源分析
             const resourceStats = {
                 totalCount: resources.length,
@@ -352,8 +355,15 @@
             });
 
             return {
-                // 核心指标
-                fcp, lcp, cls, fid, tti, dnsTime, tcpTime, responseTime,
+                // 核心指标（增加类型安全处理）
+                fcp: safeNumber(fcp),
+                lcp: safeNumber(lcp),
+                cls: safeNumber(cls),
+                fid: safeNumber(fid),
+                tti: safeNumber(tti),
+                dnsTime: safeNumber(dnsTime),
+                tcpTime: safeNumber(tcpTime),
+                responseTime: safeNumber(responseTime),
                 // 资源数据
                 resources: resources.map(r => ({
                     name: r.name.substring(0, 60) + (r.name.length > 60 ? '...' : ''),
@@ -380,14 +390,14 @@
                     mode: 'cors',
                     signal: AbortSignal.timeout(10000)
                 });
-                const responseTime = Date.now() - startTime;
+                const responseTime = (Date.now() - startTime) / 1000; // 转为秒
                 const contentLength = response.headers.get('content-length');
                 const size = contentLength ? parseInt(contentLength, 10) : 0;
 
+                // 所有指标默认0，确保类型安全
                 return {
-                    // 跨域默认0，标注受限
                     fcp: 0, lcp: 0, cls: 0, fid: 0, tti: 0, dnsTime: 0, tcpTime: 0,
-                    responseTime,
+                    responseTime: responseTime,
                     resources: [],
                     resourceStats: { totalCount: 0, totalSize: size, typeStats: {} },
                     statusCode: response.status,
@@ -402,43 +412,82 @@
             }
         }
 
-        // 核心指标采集辅助函数
+        // 核心指标采集辅助函数（修复类型问题）
         function getFirstContentfulPaint() {
             const entries = performance.getEntriesByType('paint');
             const fcpEntry = entries.find(e => e.name === 'first-contentful-paint');
-            return fcpEntry ? fcpEntry.startTime / 1000 : 0;
+            return fcpEntry ? fcpEntry.startTime / 1000 : 0; // 转为秒
         }
 
+        // 修复点3：重构LCP采集函数，确保返回数字
         function getLargestContentfulPaint() {
             return new Promise(resolve => {
-                new PerformanceObserver((entryList) => {
+                let lcpValue = 0;
+                // 兼容浏览器不支持的情况
+                if (!('PerformanceObserver' in window)) {
+                    resolve(0);
+                    return;
+                }
+                const observer = new PerformanceObserver((entryList) => {
                     const entries = entryList.getEntries();
-                    const lastEntry = entries[entries.length - 1];
-                    resolve(lastEntry ? lastEntry.startTime / 1000 : 0);
-                }).observe({ type: 'largest-contentful-paint', buffered: true });
-                // 兜底
-                setTimeout(() => resolve(0), 1000);
+                    if (entries.length > 0) {
+                        const lastEntry = entries[entries.length - 1];
+                        lcpValue = lastEntry.startTime / 1000; // 转为秒
+                    }
+                    resolve(lcpValue);
+                });
+                try {
+                    observer.observe({ type: 'largest-contentful-paint', buffered: true });
+                } catch (e) {
+                    resolve(0); // 浏览器不支持则返回0
+                }
+                // 兜底：1秒后返回，避免阻塞
+                setTimeout(() => resolve(lcpValue), 1000);
             });
         }
 
+        // 修复点4：重构CLS采集函数，确保返回数字
         function getCumulativeLayoutShift() {
-            let cls = 0;
-            new PerformanceObserver((entryList) => {
-                for (const entry of entryList.getEntries()) {
-                    if (!entry.hadRecentInput) cls += entry.value;
-                }
-            }).observe({ type: 'layout-shift', buffered: true });
-            return parseFloat(cls.toFixed(3));
+            let clsValue = 0;
+            if (!('PerformanceObserver' in window)) {
+                return 0;
+            }
+            try {
+                new PerformanceObserver((entryList) => {
+                    for (const entry of entryList.getEntries()) {
+                        if (!entry.hadRecentInput) {
+                            clsValue += entry.value;
+                        }
+                    }
+                }).observe({ type: 'layout-shift', buffered: true });
+            } catch (e) {
+                return 0;
+            }
+            return parseFloat(clsValue.toFixed(3)) || 0;
         }
 
+        // 修复点5：重构FID采集函数，确保返回数字
         function getFirstInputDelay() {
             return new Promise(resolve => {
-                new PerformanceObserver((entryList) => {
+                let fidValue = 0;
+                if (!('PerformanceObserver' in window)) {
+                    resolve(0);
+                    return;
+                }
+                const observer = new PerformanceObserver((entryList) => {
                     const entries = entryList.getEntries();
-                    const firstEntry = entries[0];
-                    resolve(firstEntry ? firstEntry.processingStart - firstEntry.startTime : 0);
-                }).observe({ type: 'first-input', buffered: true });
-                setTimeout(() => resolve(0), 1000);
+                    if (entries.length > 0) {
+                        const firstEntry = entries[0];
+                        fidValue = (firstEntry.processingStart - firstEntry.startTime) / 1000; // 转为秒
+                    }
+                    resolve(fidValue);
+                });
+                try {
+                    observer.observe({ type: 'first-input', buffered: true });
+                } catch (e) {
+                    resolve(0);
+                }
+                setTimeout(() => resolve(fidValue), 1000);
             });
         }
 
@@ -498,22 +547,25 @@
             bindDownloadEvents(data);
         }
 
-        // 渲染单个指标卡片
+        // 修复点6：渲染指标卡片时增加类型校验
         function renderMetricCard(id, value, benchmark, unit = 's', isCls = false) {
             const card = document.getElementById(id);
             const valueEl = card.querySelector('.value');
             const benchmarkEl = card.querySelector('.benchmark');
             
-            if (value === 0) {
+            // 确保value是数字
+            const numValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+            
+            if (numValue === 0 && !isCls) {
                 valueEl.innerText = '受限';
                 benchmarkEl.innerText = '跨域/浏览器不支持';
                 return;
             }
 
-            const displayValue = isCls ? value.toFixed(3) : value.toFixed(2);
+            const displayValue = isCls ? numValue.toFixed(3) : numValue.toFixed(2);
             valueEl.innerText = `${displayValue}${unit}`;
             
-            const status = isCls ? value <= benchmark : value <= benchmark;
+            const status = isCls ? numValue <= benchmark : numValue <= benchmark;
             benchmarkEl.innerText = status ? `行业基准：≤${benchmark}${unit}（优秀）` : `行业基准：≤${benchmark}${unit}（需优化）`;
             benchmarkEl.style.color = status ? '#36b37e' : '#ff5630';
         }
